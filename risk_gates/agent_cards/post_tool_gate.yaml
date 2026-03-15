@@ -1,0 +1,27 @@
+name: post_tool_gate
+description: >
+  Sanitizes tool execution results. Removes leaked secrets,
+  enforces data size limits, validates financial data freshness,
+  and redacts PII from tool outputs.
+version: "1.0.0"
+type: risk_gate
+inputs:
+  - PostToolRequest:
+      tool_name: str
+      tool_result: Any
+      execution_time_ms: float
+      risk_context: RiskContext
+outputs:
+  - PostToolDecision:
+      gate_decision: GateDecision
+      sanitized_result: "Any | None"
+      secrets_found: "list[str]"
+      data_freshness: "str | None"
+authorized_tools: []
+opa_policy: risk_gates/policies/post_tool_gate.rego
+opa_package: staq.gates.post_tool
+triggers:
+  - Each tool result before returning to LLM loop
+sla:
+  max_latency_ms: 30
+  availability: "99.9%"

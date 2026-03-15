@@ -1,0 +1,27 @@
+name: post_llm_gate
+description: >
+  Validates LLM output for financial compliance. Ensures disclaimers
+  are present for regulated topics, detects hallucinated financial data,
+  and blocks unqualified investment advice.
+version: "1.0.0"
+type: risk_gate
+inputs:
+  - PostLLMRequest:
+      llm_response: str
+      tool_calls: "list[ToolCall]"
+      risk_context: RiskContext
+      original_input: str
+outputs:
+  - PostLLMDecision:
+      gate_decision: GateDecision
+      modified_response: "str | None"
+      compliance_flags: "list[str]"
+      hallucination_markers: "list[HallucinationMarker]"
+authorized_tools: []
+opa_policy: risk_gates/policies/post_llm_gate.rego
+opa_package: staq.gates.post_llm
+triggers:
+  - Every LLM response before delivery or tool dispatch
+sla:
+  max_latency_ms: 50
+  availability: "99.9%"

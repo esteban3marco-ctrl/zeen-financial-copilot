@@ -1,0 +1,26 @@
+name: pre_tool_gate
+description: >
+  Authorizes tool execution based on user role, tool whitelist,
+  rate limits, and parameter safety. Enforces sandbox requirements
+  for code execution tools.
+version: "1.0.0"
+type: risk_gate
+inputs:
+  - PreToolRequest:
+      tool_name: str
+      tool_params: "dict[str, Any]"
+      risk_context: RiskContext
+outputs:
+  - PreToolDecision:
+      gate_decision: GateDecision
+      requires_sandbox: bool
+      rate_limit_remaining: int
+      sanitized_params: "dict[str, Any] | None"
+authorized_tools: []
+opa_policy: risk_gates/policies/pre_tool_gate.rego
+opa_package: staq.gates.pre_tool
+triggers:
+  - Each tool call before execution
+sla:
+  max_latency_ms: 30
+  availability: "99.9%"

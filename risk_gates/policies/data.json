@@ -1,0 +1,26 @@
+{
+  "rate_limits": {
+    "anonymous": 10,
+    "basic": 30,
+    "premium": 100,
+    "advisor": 200,
+    "admin": 500
+  },
+  "tool_rate_limits": {
+    "trade_executor": 5,
+    "financial_report": 10,
+    "code_executor": 20
+  },
+  "authorized_mcp_servers": [
+    "financial-data-server",
+    "supabase-server",
+    "e2b-sandbox-server"
+  ],
+  "sandbox_tools": [
+    "code_executor",
+    "python_sandbox",
+    "script_runner"
+  ],
+  "financial_data_row_limit": 500,
+  "output_size_limit_bytes": 500000
+}

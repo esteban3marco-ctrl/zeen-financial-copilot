@@ -1,0 +1,25 @@
+name: pre_llm_gate
+description: >
+  Validates and sanitizes user input before it reaches the LLM.
+  Detects PII, prompt injection attempts, and ensures the request
+  falls within authorized financial scope.
+version: "1.0.0"
+type: risk_gate
+inputs:
+  - PreLLMRequest:
+      user_input: str
+      risk_context: RiskContext
+outputs:
+  - PreLLMDecision:
+      gate_decision: GateDecision
+      sanitized_input: "str | None"
+      detected_pii: "list[PIIMatch]"
+      injection_score: float
+authorized_tools: []
+opa_policy: risk_gates/policies/pre_llm_gate.rego
+opa_package: staq.gates.pre_llm
+triggers:
+  - Every user message before LLM invocation
+sla:
+  max_latency_ms: 50
+  availability: "99.9%"
