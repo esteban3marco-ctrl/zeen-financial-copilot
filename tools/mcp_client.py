@@ -13,6 +13,69 @@ logger = logging.getLogger(__name__)
 _DEFAULT_RETRY_DELAYS = [1.0, 2.0]
 
 
+async def list_mcp_tools(server_config: MCPServerConfig) -> list[MCPToolSchema]:
+    """Connect to MCP server and return list of available tools."""
+    from tools.schemas import MCPToolParam, MCPToolSchema
+
+    if server_config.transport == "stdio":
+        from mcp import ClientSession, StdioServerParameters
+        from mcp.client.stdio import stdio_client
+
+        if server_config.command is None:
+            raise ValueError(f"stdio transport requires 'command' for server {server_config.server_id}")
+
+        cmd_parts = server_config.command.split()
+        server_params = StdioServerParameters(
+            command=cmd_parts[0],
+            args=cmd_parts[1:],
+            env=server_config.env or None,
+        )
+        async with stdio_client(server_params) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                response = await session.list_tools()
+                
+                tools = []
+                for t in response.tools:
+                    # Convert MCP SDK tool to our schema
+                    params = []
+                    # Simple mapping for internal schema - in production we'd parse JSON Schema
+                    # This is a simplification for the demo architecture
+                    input_schema = getattr(t, "inputSchema", {})
+                    props = input_schema.get("properties", {})
+                    required = input_schema.get("required", [])
+                    
+                    for name, p in props.items():
+                        params.append(MCPToolParam(
+                            name=name,
+                            type=p.get("type", "string"),
+                            description=p.get("description", ""),
+                            required=name in required
+                        ))
+                    
+                    tools.append(MCPToolSchema(
+                        name=t.name,
+                        description=t.description or "",
+                        server_id=server_config.server_id,
+                        parameters=params,
+                        # Metadata can be passed via tool name or description patterns in this architecture
+                        requires_sandbox="sandbox" in (t.description or "").lower(),
+                        risk_level="high" if "trade" in t.name.lower() else "low"
+                    ))
+                return tools
+    
+    # For HTTP/SSE discovery
+    if server_config.transport in {"sse", "streamable_http"}:
+        import httpx
+        async with httpx.AsyncClient(timeout=server_config.timeout_ms / 1000) as client:
+            response = await client.get(f"{server_config.url}/tools")
+            response.raise_for_status()
+            raw_tools = response.json().get("tools", [])
+            return [MCPToolSchema(**t) for t in raw_tools]
+
+    raise ValueError(f"Unsupported discovery transport: {server_config.transport}")
+
+
 async def call_mcp_tool(
     server_config: MCPServerConfig,
     tool_name: str,

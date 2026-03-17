@@ -137,8 +137,20 @@ async def bootstrap_registry(registry: MCPToolRegistry) -> None:
         )
     )
 
+    # ── Production Finance Server (Dynamic Discovery) ───────────────────
+    prod_server_path = Path(__file__).parent.parent.parent / "tools" / "production_finance_server.py"
+    production_server = MCPServerConfig(
+        server_id="staq_production",
+        transport="stdio",
+        command=f"{sys.executable} {prod_server_path}",
+        timeout_ms=20_000,
+    )
+    registry.register_server(production_server)
+    
+    # Dynamically discover tools from the production server
+    await registry.discover_from_server("staq_production")
+
     logger.info(
-        "Registry bootstrap complete: %d tools registered across %d servers",
+        "Registry bootstrap complete: %d tools registered (including dynamic discovery)",
         len(registry.all_tools()),
-        3,
     )

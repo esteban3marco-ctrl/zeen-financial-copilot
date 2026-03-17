@@ -40,6 +40,27 @@ class MCPToolRegistry:
     def all_tools(self) -> list[MCPToolSchema]:
         return list(self._tools.values())
 
+    async def discover_from_server(self, server_id: str) -> int:
+        """Connect to an MCP server and dynamically discover its tools."""
+        from tools.mcp_client import list_mcp_tools  # lazy import
+
+        server_config = self.get_server(server_id)
+        if server_config is None:
+            raise ValueError(f"Server '{server_id}' not found")
+
+        logger.info("Discovering tools from MCP server: %s", server_id)
+        tools = await list_mcp_tools(server_config)
+
+        count = 0
+        for tool in tools:
+            # Enforce server_id alignment
+            tool.server_id = server_id
+            self.register_tool(tool)
+            count += 1
+
+        logger.info("Successfully discovered %d tools from %s", count, server_id)
+        return count
+
     def tools_for_role(self, role: str) -> list[MCPToolSchema]:
         """Filter tools by risk level appropriate for role."""
         if role in {"advisor", "admin"}:
